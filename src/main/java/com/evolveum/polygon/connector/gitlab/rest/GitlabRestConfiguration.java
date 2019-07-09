@@ -34,9 +34,9 @@ public class GitlabRestConfiguration extends AbstractConfiguration implements St
 	private String loginUrl;
         private String protocol;
 	private GuardedString privateToken;
-        private String groupsToManage;
-	private static final Log LOGGER = Log.getLog(GitlabRestConnector.class);
-        
+        private String groupsToManage;	
+        private String projectsToManage;
+        private static final Log LOGGER = Log.getLog(GitlabRestConnector.class);
 
 
 	@ConfigurationProperty(order = 1, displayMessageKey = "privateToken.display", helpMessageKey = "privateToken.help", required = true, confidential = true)
@@ -68,11 +68,22 @@ public class GitlabRestConfiguration extends AbstractConfiguration implements St
 		return protocol;
 	}
         
-        // Add groupsToManage configuration property to limit number of groups and memberships in these groupd that will be managed by connector. If null or empty then all groups. Symbol Coma "," is delimiter       
+        // Add groupsToManage configuration property to limit number of groups and memberships in these groups that will be managed by connector. If null or empty then all groups. Symbol Coma "," is delimiter       
         @ConfigurationProperty(order = 5, displayMessageKey = "groupsToManage.display", helpMessageKey = "groupsToManage.help", required = false, confidential = false)
         public String getGroupsToManage() {
             return groupsToManage;
         }
+        
+        // Add getProjectsToManage configuration property to limit number of projects and memberships in these projects that will be managed by connector. If null or empty then all projects. Symbol Coma "," is delimiter       
+        @ConfigurationProperty(order = 6, displayMessageKey = "projectsToManage.display", helpMessageKey = "projectsToManage.help", required = false, confidential = false)
+        public String getProjectsToManage() {
+            return projectsToManage;
+        }
+        
+        public void setProjectsToManage(String projectsToManage) {
+            this.projectsToManage = projectsToManage;
+        }
+
 
         public void setGroupsToManage(String groupsToManage) {
             this.groupsToManage = groupsToManage;
@@ -105,6 +116,7 @@ public class GitlabRestConfiguration extends AbstractConfiguration implements St
 		this.privateToken.dispose();
                 this.protocol = null;
                 this.groupsToManage=null;
+                this.projectsToManage=null;
 	}
 
 	@Override

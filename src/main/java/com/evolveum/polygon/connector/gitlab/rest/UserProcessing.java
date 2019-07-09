@@ -103,10 +103,16 @@ public class UserProcessing extends ObjectProcessing {
         protected static final String ATTR_GROUP_MASTER = "group-master";
         protected static final String ATTR_GROUP_DEVELOPER = "group-developer";
         protected static final String ATTR_GROUP_REPORTER = "group-reporter";
-            protected static final String ATTR_GROUP_GEST = "group-gest";
+        protected static final String ATTR_GROUP_GUEST = "group-guest";
+        protected static final String ATTR_PROJECT_MASTER = "project-master";
+        protected static final String ATTR_PROJECT_DEVELOPER = "project-developer";
+        protected static final String ATTR_PROJECT_REPORTER = "project-reporter";
+        protected static final String ATTR_PROJECT_GUEST = "project-guest";        
         protected CloseableHttpClient httpclient;
 	private GitlabRestConfiguration configuration;
         private Map<String, Map<Integer, List<String>>> mapUsersGroups;
+        private Map<String, Map<Integer, List<String>>> mapUsersProjects;
+        private String NONE="none";
         
 
 	public UserProcessing(GitlabRestConfiguration configuration, CloseableHttpClient httpclient) {
@@ -262,9 +268,29 @@ public class UserProcessing extends ObjectProcessing {
 		userObjClassBuilder.addAttributeInfo(attrGroupReporterBuilder.build());
                 
                 //multivalued: TRUE && createable: TRUE && updateable: TRUE && readable: TRUE
-		AttributeInfoBuilder attrGroupGestBuilder = new AttributeInfoBuilder(ATTR_GROUP_GEST);
-		attrGroupGestBuilder.setType(String.class).setMultiValued(true).setReadable(true);
-		userObjClassBuilder.addAttributeInfo(attrGroupGestBuilder.build());
+		AttributeInfoBuilder attrGroupGuestBuilder = new AttributeInfoBuilder(ATTR_GROUP_GUEST);
+		attrGroupGuestBuilder.setType(String.class).setMultiValued(true).setReadable(true);
+		userObjClassBuilder.addAttributeInfo(attrGroupGuestBuilder.build());
+                
+                //multivalued: TRUE && createable: TRUE && updateable: TRUE && readable: TRUE
+		AttributeInfoBuilder attrProjectMasterBuilder = new AttributeInfoBuilder(ATTR_PROJECT_MASTER);
+		attrProjectMasterBuilder.setType(String.class).setMultiValued(true).setReadable(true);
+		userObjClassBuilder.addAttributeInfo(attrProjectMasterBuilder.build());
+                
+                //multivalued: TRUE && createable: TRUE && updateable: TRUE && readable: TRUE
+		AttributeInfoBuilder attrProjectDeveloperBuilder = new AttributeInfoBuilder(ATTR_PROJECT_DEVELOPER);
+		attrProjectDeveloperBuilder.setType(String.class).setMultiValued(true).setReadable(true);
+		userObjClassBuilder.addAttributeInfo(attrProjectDeveloperBuilder.build());
+                
+                //multivalued: TRUE && createable: TRUE && updateable: TRUE && readable: TRUE
+		AttributeInfoBuilder attrProjectReporterBuilder = new AttributeInfoBuilder(ATTR_PROJECT_REPORTER);
+		attrProjectReporterBuilder.setType(String.class).setMultiValued(true).setReadable(true);
+		userObjClassBuilder.addAttributeInfo(attrProjectReporterBuilder.build());
+                
+                //multivalued: TRUE && createable: TRUE && updateable: TRUE && readable: TRUE
+		AttributeInfoBuilder attrProjectGuestBuilder = new AttributeInfoBuilder(ATTR_PROJECT_GUEST);
+		attrProjectGuestBuilder.setType(String.class).setMultiValued(true).setReadable(true);
+		userObjClassBuilder.addAttributeInfo(attrProjectGuestBuilder.build());
 		
 		schemaBuilder.defineObjectClass(userObjClassBuilder.build());
 	}
@@ -504,32 +530,62 @@ public class UserProcessing extends ObjectProcessing {
 		if(identities != null){
 			builder.addAttribute(ATTR_IDENTITIES, identities.toArray());
 		}
-                
-                // Get all members
-            if (mapUsersGroups == null || mapUsersGroups.isEmpty()) {
-                getAllGroupMembers(configuration, httpclient);
-            }
+            
+            if (configuration.getGroupsToManage() != null && configuration.getGroupsToManage().equalsIgnoreCase(NONE)) {
+                //"None" means skip group membership processing   
+            } else {
+                // Get all project members (Users)
+                if (mapUsersGroups == null || mapUsersGroups.isEmpty()) {
+                    getAllGroupMembers(configuration, httpclient);
+                }
 
-            // Get user groups
-            Map<Integer, List<String>> groups = mapUsersGroups.get(String.valueOf(getUIDIfExists(user, UID, builder)));
-            if (groups != null && !groups.isEmpty()) {
-                if (groups.get(10) != null && !groups.get(10).isEmpty()) {
-                    builder.addAttribute(ATTR_GROUP_GEST, groups.get(10).toArray());
-                }
-                if (groups.get(20) != null && !groups.get(20).isEmpty()) {
-                    builder.addAttribute(ATTR_GROUP_REPORTER, groups.get(20).toArray());
-                }
-                if (groups.get(30) != null && !groups.get(30).isEmpty()) {
-                    builder.addAttribute(ATTR_GROUP_DEVELOPER, groups.get(30).toArray());
-                }
-                if (groups.get(40) != null && !groups.get(40).isEmpty()) {
-                    builder.addAttribute(ATTR_GROUP_MASTER, groups.get(40).toArray());
-                }
-                if (groups.get(50) != null && !groups.get(50).isEmpty()) {
-                    builder.addAttribute(ATTR_GROUP_OWNER, groups.get(50).toArray());
+                // Get user groups
+                Map<Integer, List<String>> groups = mapUsersGroups.get(String.valueOf(getUIDIfExists(user, UID, builder)));
+                if (groups != null && !groups.isEmpty()) {
+                    if (groups.get(10) != null && !groups.get(10).isEmpty()) {
+                        builder.addAttribute(ATTR_GROUP_GUEST, groups.get(10).toArray());
+                    }
+                    if (groups.get(20) != null && !groups.get(20).isEmpty()) {
+                        builder.addAttribute(ATTR_GROUP_REPORTER, groups.get(20).toArray());
+                    }
+                    if (groups.get(30) != null && !groups.get(30).isEmpty()) {
+                        builder.addAttribute(ATTR_GROUP_DEVELOPER, groups.get(30).toArray());
+                    }
+                    if (groups.get(40) != null && !groups.get(40).isEmpty()) {
+                        builder.addAttribute(ATTR_GROUP_MASTER, groups.get(40).toArray());
+                    }
+                    if (groups.get(50) != null && !groups.get(50).isEmpty()) {
+                        builder.addAttribute(ATTR_GROUP_OWNER, groups.get(50).toArray());
+                    }
                 }
             }
+            
+            
+            if (configuration.getProjectsToManage() != null && configuration.getProjectsToManage().equalsIgnoreCase(NONE)) {
+                //"None" means skip group membership processing   
+            } else {
+                // Get all project members (Users)
+                if (mapUsersProjects == null || mapUsersProjects.isEmpty()) {
+                    getAllProjectMembers(configuration, httpclient);
+                }
 
+                // Get user projects
+                Map<Integer, List<String>> projects = mapUsersProjects.get(String.valueOf(getUIDIfExists(user, UID, builder)));
+                if (projects != null && !projects.isEmpty()) {
+                    if (projects.get(10) != null && !projects.get(10).isEmpty()) {
+                        builder.addAttribute(ATTR_PROJECT_GUEST, projects.get(10).toArray());
+                    }
+                    if (projects.get(20) != null && !projects.get(20).isEmpty()) {
+                        builder.addAttribute(ATTR_PROJECT_REPORTER, projects.get(20).toArray());
+                    }
+                    if (projects.get(30) != null && !projects.get(30).isEmpty()) {
+                        builder.addAttribute(ATTR_PROJECT_DEVELOPER, projects.get(30).toArray());
+                    }
+                    if (projects.get(40) != null && !projects.get(40).isEmpty()) {
+                        builder.addAttribute(ATTR_PROJECT_MASTER, projects.get(40).toArray());
+                    }
+                }
+            }
 		return builder;
 	}
 	
@@ -761,7 +817,7 @@ public class UserProcessing extends ObjectProcessing {
 	}
     public void getAllGroupMembers(GitlabRestConfiguration configuration, CloseableHttpClient httpclient) {
         LOGGER.info("getAllGroupMembers Start");
-        Map<String,String> groupsToManage = getGroupsForFilter(this.configuration.getGroupsToManage());        
+        Map<String,String> groupsToManage = getArrayForFilter(this.configuration.getGroupsToManage());        
         JSONArray groups = new JSONArray();
         JSONArray partOfGroups = new JSONArray();
         int ii = 1;
@@ -820,9 +876,9 @@ public class UserProcessing extends ObjectProcessing {
     private Map<String, Map<Integer, List<String>>> getAccessGroupsUser(Map<String, Map<Integer, List<String>>> output, String groupId, Integer accLvl, Map<Integer, List<String>> groupMembers) {
         Map<String, Map<Integer, List<String>>> newOutput = new HashMap(output);
         List<String> accLvlGroup = groupMembers.get(accLvl);
-        Iterator<String> itGest = accLvlGroup.iterator();
-        while (itGest.hasNext()) {
-            String user = itGest.next();
+        Iterator<String> itGuest = accLvlGroup.iterator();
+        while (itGuest.hasNext()) {
+            String user = itGuest.next();
             if (newOutput.containsKey(user)) {
                 Map<Integer, List<String>> currentAccessGroups = newOutput.get(user);
 
@@ -847,15 +903,101 @@ public class UserProcessing extends ObjectProcessing {
         return newOutput;
     }
 
-    private Map<String, String> getGroupsForFilter(String groupsToManage) {
-        Map<String,String> groupArr = new HashMap<String,String>();
-        if(groupsToManage==null || groupsToManage.isEmpty()){
+    private Map<String, String> getArrayForFilter(String inputString) {
+        Map<String,String> output = new HashMap<String,String>();
+        if(inputString==null || inputString.isEmpty()){
         return null;
         }
-        String[] values = groupsToManage.toLowerCase().split(",");
+        String[] values = inputString.toLowerCase().split(",");
         for (String value : values) {
-            groupArr.put(value, value);
+            output.put(value, value);
         }
-        return   groupArr; 
+        return   output; 
+    }
+
+    private void getAllProjectMembers(GitlabRestConfiguration configuration, CloseableHttpClient httpclient) {
+        LOGGER.info("getAllProjectMembers Start");
+        Map<String,String> projectsToManage = getArrayForFilter(this.configuration.getProjectsToManage());        
+        JSONArray projects = new JSONArray();
+        JSONArray partOfProjects = new JSONArray();
+        int ii = 1;
+        do {
+            Map<String, String> parameters = new HashMap<String, String>();
+            parameters.put(PAGE, String.valueOf(ii));
+            parameters.put(PER_PAGE, "100");
+            partOfProjects = (JSONArray) executeGetRequest(PROJECTS, parameters, null, true);
+            Iterator<Object> iterator = partOfProjects.iterator();
+            while (iterator.hasNext()) {
+                Object project = iterator.next();
+                if(projectsToManage == null){
+                projects.put(project);
+                } else if( projectsToManage.containsKey(new JSONObject(project.toString()).getString("name").toLowerCase())){
+                projects.put(project);
+                }
+            }
+            ii++;
+        } while (partOfProjects.length() == 100);
+        
+
+        Map<String, Map<Integer, List<String>>> mapProjectsMembers = new HashMap();
+        JSONObject project;
+        for (int i = 0; i < projects.length(); i++) {
+            project = projects.getJSONObject(i);            
+
+            StringBuilder sbPath = new StringBuilder();
+            sbPath.append(PROJECTS).append("/").append(String.valueOf(project.get(UID)));
+            GroupOrProjectProcessing groupOrProjectProcessing = new GroupOrProjectProcessing(configuration, httpclient);
+            URIBuilder uribuilderMember = groupOrProjectProcessing.createRequestForMembers(sbPath.toString());
+            Map<Integer, List<String>> mapMembersProject = groupOrProjectProcessing.getMembers(uribuilderMember);
+            mapProjectsMembers.put(String.valueOf(project.get(UID)), mapMembersProject);
+        }
+        this.mapUsersProjects = getUsersProjects(mapProjectsMembers);
+        LOGGER.info("getAllProjectMembers End ");
+    }
+
+    private Map<String, Map<Integer, List<String>>> getUsersProjects(Map<String, Map<Integer, List<String>>> mapProjectsMembers) {
+        Map<String, Map<Integer, List<String>>> output = new HashMap();
+
+        Iterator<String> prIter = mapProjectsMembers.keySet().iterator();
+        while (prIter.hasNext()) {
+            String projectId = prIter.next();
+            Map<Integer, List<String>> projectMembers = mapProjectsMembers.get(projectId);
+
+            output = getAccessProjectsUser(output, projectId, 10, projectMembers);
+            output = getAccessProjectsUser(output, projectId, 20, projectMembers);
+            output = getAccessProjectsUser(output, projectId, 30, projectMembers);
+            output = getAccessProjectsUser(output, projectId, 40, projectMembers);
+        }
+        return output;
+    }
+
+    private Map<String, Map<Integer, List<String>>> getAccessProjectsUser(Map<String, Map<Integer, List<String>>> output, String projectId, Integer accLvl, Map<Integer, List<String>> projectMembers) {
+        Map<String, Map<Integer, List<String>>> newOutput = new HashMap(output);
+        List<String> accLvlProject = projectMembers.get(accLvl);
+        Iterator<String> itGuest = accLvlProject.iterator();
+        while (itGuest.hasNext()) {
+            String user = itGuest.next();
+            if (newOutput.containsKey(user)) {
+                Map<Integer, List<String>> currentAccessProjects = newOutput.get(user);
+
+                List<String> currentProjects = currentAccessProjects.get(accLvl);
+                if (currentProjects == null || currentProjects.isEmpty()) {
+                    List<String> newProjects = Arrays.asList(projectId);
+                    currentAccessProjects.put(accLvl, newProjects);
+                } else {
+                    List<String> newProjects = new ArrayList<String>(currentProjects);
+                    newProjects.add(projectId);
+                    currentAccessProjects.replace(accLvl, newProjects);
+                }
+                newOutput.replace(user, currentAccessProjects);
+
+            } else {
+                List<String> project = Arrays.asList(projectId);
+                Map<Integer, List<String>> accessProject = new HashMap();
+                accessProject.put(accLvl, project);
+                newOutput.put(user, accessProject);
+            }
+        }
+        return newOutput;
     }
 }

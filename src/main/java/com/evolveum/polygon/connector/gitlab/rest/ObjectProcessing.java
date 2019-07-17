@@ -20,11 +20,13 @@ package com.evolveum.polygon.connector.gitlab.rest;
  *
  */
 
+import static com.evolveum.polygon.connector.gitlab.rest.GroupOrProjectProcessing.SUDO;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -102,11 +104,13 @@ public class ObjectProcessing {
 	private static final String ATTR_PASS = "password";
 
 	protected static final String UID = "id"; // ID
-	protected static final String ATTR_USERNAME = "username";
+	protected static final String ATTR_USERNAME = "username";        
 	private URIBuilder uriBuilder;
 	protected CloseableHttpClient httpclient;
 
 	private GitlabRestConfiguration configuration;
+        
+        protected static final String SUDO="sudo";        
 	
 	public long firstStartTime;
 	public long firstEndTime;
@@ -538,9 +542,9 @@ public class ObjectProcessing {
                     } else {
                         JSONArray responce = new JSONArray();
                         if (options == null || options.getPageSize() == null) {
-                            uribuilder.addParameter(PER_PAGE, "100");
+                            uribuilder.setParameter(PER_PAGE, "100");
                         }
-                        for (int i = 0; i < totalPages; i++) {
+                        for (int i = 1; i < totalPages+1; i++) {
                             URI uriPaged = uribuilder.setParameter(PAGE, Integer.toString(i)).build();
                             HttpRequestBase requestPaged = new HttpGet(uriPaged);
                             JSONArray responcePaged = callRequestForJSONArray(requestPaged, true);
@@ -888,7 +892,7 @@ public class ObjectProcessing {
         return totalPages;
     }
 
-    private JSONArray mergeJSONArrays(JSONArray rootArr, JSONArray addArr) {
+    protected JSONArray mergeJSONArrays(JSONArray rootArr, JSONArray addArr) {
 
         JSONArray sourceArray = new JSONArray(rootArr.toString());
         JSONArray destinationArray = new JSONArray(addArr.toString());
@@ -898,5 +902,43 @@ public class ObjectProcessing {
         }
         return destinationArray;
     }
+    protected Map<String, String> getSingleUserObjectMembership(String membershipPath, JSONObject user) {
+        Map<String, String> output = new HashMap<String, String>();
+        StringBuilder sbPath = new StringBuilder();
+        sbPath.append(membershipPath);
 
+        URIBuilder uribuilder = this.getURIBuilder();
+        uribuilder.setPath(sbPath.toString());
+        uribuilder.addParameter(SUDO, user.getString(ATTR_USERNAME));
+        
+        JSONArray result = new JSONArray();
+        JSONArray totalResult = new JSONArray();
+                
+        int ii = 1;
+        do {
+        uribuilder.setParameter(PAGE, String.valueOf(ii));
+        uribuilder.setParameter(PER_PAGE, "100");        
+
+        Boolean parseResult = true;
+        URI uri;
+        try {
+            uri = uribuilder.build();
+        } catch (URISyntaxException e) {
+            StringBuilder sb = new StringBuilder();
+            sb.append("It was not possible create URI from UriBuider; ").append(e.getLocalizedMessage());
+            throw new ConnectorException(sb.toString(), e);
+        }
+        HttpRequestBase request = new HttpGet(uri);        
+        result = callRequestForJSONArray(request, parseResult);
+        totalResult=mergeJSONArrays(totalResult, result);
+        ii++;
+        } while (result.length() == 100);
+
+        for (int i = 0; i < totalResult.length(); i++) {
+            JSONObject jObj = totalResult.getJSONObject(i);
+            String name = jObj.getString(ATTR_NAME);
+            output.put(name.toLowerCase(), name.toLowerCase());
+        }
+        return output;
+    }
 }

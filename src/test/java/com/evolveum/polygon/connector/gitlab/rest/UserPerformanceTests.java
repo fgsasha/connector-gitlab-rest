@@ -225,4 +225,29 @@ public class UserPerformanceTests extends BasicFunctionForTests {
 			gitlabRestConnector.dispose();
 		}
 	}
+        @Test(priority = 31)
+	public void SearchSomeSingleUser(){		
+		GitlabRestConnector gitlabRestConnector = new GitlabRestConnector();
+		GitlabRestConfiguration conf = getConfiguration();
+                gitlabRestConnector.init(conf);
+		ObjectClass objectClassAccount = ObjectClass.ACCOUNT;
+		OperationOptions options = new OperationOptions(new HashMap<String,Object>());
+                final ArrayList<ConnectorObject> resultsUser = new ArrayList<>();
+                SearchResultsHandler handlerUser = new SearchResultsHandler() {
+
+			@Override
+			public boolean handle(ConnectorObject connectorObject) {
+				resultsUser.add(connectorObject);
+				return true;
+			}
+
+			@Override
+			public void handleResult(SearchResult result) {
+			}
+		};		
+                AttributeFilter filter;
+		filter =  (AttributeFilter) FilterBuilder.equalTo(AttributeBuilder.build("__NAME__", "testuser"));                		
+		gitlabRestConnector.executeQuery(objectClassAccount, filter, handlerUser, options);		
+		gitlabRestConnector.dispose();
+	}
 }

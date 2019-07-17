@@ -231,5 +231,5 @@ public class GroupOrProjectProcessing extends ObjectProcessing {
 				}
 			}
 		}
-	}
+	} 
 }
